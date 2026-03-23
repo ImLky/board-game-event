@@ -72,16 +72,16 @@
     .player-tag__dot--p2 { background: #6BCB77; }
     .player-tag__dot--p3 { background: #FFD93D; }
 
-    /* 3D Dice Container */
-    .dice-container { width: 100%; height: 180px; position: relative; border-radius: 12px; overflow: hidden; background: linear-gradient(180deg, #e8e0d0 0%, #d4c9b5 100%); margin-top: 12px; border: 2px solid #c9bea8; }
-    #dice-box { width: 100%; height: 100%; }
+    /* 3D Dice */
+    #dice-box { width: 100%; height: 200px; border-radius: 12px; overflow: hidden; margin-top: 12px; }
+    #dice-box canvas { border-radius: 12px; }
 
     /* Controls */
     .controls { text-align: center; margin-top: 12px; }
+    .dice-result-text { font-size: 22px; font-weight: 800; margin-bottom: 10px; min-height: 32px; color: var(--color-accent); }
     .btn-roll { background: linear-gradient(135deg, var(--color-accent), #ee5a5a); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: var(--font-main); box-shadow: 0 4px 16px rgba(255,107,107,0.4); transition: transform 0.2s; }
     .btn-roll:hover { transform: translateY(-2px); }
     .btn-roll:disabled { background: var(--color-gray); cursor: not-allowed; transform: none; box-shadow: none; }
-    .dice-result-text { font-size: 20px; font-weight: 800; margin-bottom: 10px; min-height: 30px; }
 
     .status { text-align: center; margin-top: 12px; padding: 10px; background: var(--color-light); border-radius: 8px; font-size: 14px; font-weight: 600; }
 
@@ -101,10 +101,8 @@
     .result__title { font-size: 22px; font-weight: 800; margin-bottom: 16px; }
     .result__player { text-align: left; margin: 12px 0; padding: 12px; background: var(--color-light); border-radius: 10px; }
     .result__player-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-    .result__item { font-size: 13px; padding: 4px 0; color: var(--color-dark); }
+    .result__item { font-size: 13px; padding: 4px 0; }
     .btn-restart { background: var(--color-green); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: var(--font-main); margin-top: 16px; }
-
-    .loading-dice { text-align: center; padding: 20px; color: var(--color-gray); font-size: 14px; }
 
     .hidden { display: none; }
 
@@ -115,7 +113,7 @@
       .cell__name { font-size: 7px; }
       .token { width: 20px; height: 20px; font-size: 10px; }
       .btn-roll { padding: 12px 32px; font-size: 16px; }
-      .dice-container { height: 150px; }
+      #dice-box { height: 160px; }
     }
   </style>
 </head>
@@ -145,10 +143,7 @@
         <div class="board" id="board"></div>
       </div>
 
-      <!-- 3D Dice -->
-      <div class="dice-container">
-        <div id="dice-box"></div>
-      </div>
+      <div id="dice-box"></div>
 
       <div class="controls" id="controls">
         <div class="dice-result-text" id="diceResultText"></div>
@@ -177,9 +172,8 @@
   </div>
 
   <script type="module">
-    import DiceBox from "https://unpkg.com/@3d-dice/[email protected]/dist/dice-box.es.min.js";
+    import DiceBox from "./assets/dice-box/dice-box.es.min.js";
 
-    /* === Data === */
     var CELLS = [
       { id:0,  name:'출발',     type:'start',   icon:'🚀' },
       { id:1,  name:'10% 쿠폰', type:'coupon',  icon:'🎁', reward:'10% 할인 쿠폰' },
@@ -209,27 +203,31 @@
     var playerCount = 0, players = [], currentPlayer = 0, rolling = false, allFinished = false;
     var diceBox = null;
 
-    /* === Init 3D Dice === */
+    /* === Init Dice === */
     async function initDice() {
-      diceBox = new DiceBox({
-        assetPath: "/assets/dice-box/",
-        origin: "https://unpkg.com/@3d-dice/[email protected]/dist/",
-        container: "#dice-box",
-        theme: "default",
-        themeColor: "#FF6B6B",
-        scale: 6,
-        gravity: 2,
-        spinForce: 5,
-        throwForce: 5,
-        startingHeight: 10,
-        settleTimeout: 3000,
-        lightIntensity: 1,
-        shadowTransparency: 0.5
-      });
-      await diceBox.init();
-      diceBox.onRollComplete = function(results) {
-        handleDiceResult(results);
-      };
+      try {
+        diceBox = new DiceBox("#dice-box", {
+          assetPath: "./assets/dice-box/assets/",
+          theme: "default",
+          themeColor: "#FF6B6B",
+          scale: 7,
+          gravity: 3,
+          spinForce: 6,
+          throwForce: 6,
+          startingHeight: 12,
+          settleTimeout: 3000,
+          lightIntensity: 1.2,
+          shadowTransparency: 0.5,
+          delay: 10
+        });
+        await diceBox.init();
+        diceBox.onRollComplete = function(results) {
+          handleDiceResult(results);
+        };
+        console.log("dice-box 초기화 성공");
+      } catch(e) {
+        console.error("dice-box 초기화 실패:", e);
+      }
     }
 
     initDice();
@@ -274,140 +272,138 @@
 
     /* === Board === */
     function buildBoard() {
-      var board = document.getElementById('board');
-      board.innerHTML = '';
+      var board = document.getElementById('board'); board.innerHTML = '';
       for (var r = 0; r < 6; r++) for (var c = 0; c < 6; c++) {
         var idx = GRID_MAP[r][c], div = document.createElement('div');
         if (idx === -1) { div.className = 'cell cell--hidden'; }
-        else { var cell = CELLS[idx]; div.className = 'cell cell--' + cell.type; div.setAttribute('data-cell', idx); div.innerHTML = '<span class="cell__icon">' + cell.icon + '</span><span class="cell__name">' + cell.name + '</span>'; }
+        else { var cell = CELLS[idx]; div.className = 'cell cell--' + cell.type; div.setAttribute('data-cell', idx); div.innerHTML = '<span class="cell__icon">'+cell.icon+'</span><span class="cell__name">'+cell.name+'</span>'; }
         board.appendChild(div);
       }
     }
-    function getCellEl(idx) { return document.querySelector('[data-cell="' + idx + '"]'); }
-    function highlightCell(idx) { document.querySelectorAll('.cell--active').forEach(function(c){c.classList.remove('cell--active');}); var el = getCellEl(idx); if(el) el.classList.add('cell--active'); }
+    function getCellEl(idx) { return document.querySelector('[data-cell="'+idx+'"]'); }
+    function highlightCell(idx) { document.querySelectorAll('.cell--active').forEach(function(c){c.classList.remove('cell--active');}); var el=getCellEl(idx); if(el) el.classList.add('cell--active'); }
 
     /* === Tokens === */
     function createTokens() {
       var wrap = document.getElementById('boardWrap');
       wrap.querySelectorAll('.token').forEach(function(t){t.remove();});
-      players.forEach(function(p) { var tok = document.createElement('div'); tok.className = 'token token--p' + p.id; tok.id = 'token-' + p.id; tok.textContent = PLAYER_ICONS[p.id]; wrap.appendChild(tok); });
+      players.forEach(function(p) { var tok=document.createElement('div'); tok.className='token token--p'+p.id; tok.id='token-'+p.id; tok.textContent=PLAYER_ICONS[p.id]; wrap.appendChild(tok); });
     }
     function positionToken(pid, cidx, anim) {
-      var tok = document.getElementById('token-' + pid), cellEl = getCellEl(cidx), wrap = document.getElementById('boardWrap');
-      if (!tok || !cellEl || !wrap) return;
-      var wR = wrap.getBoundingClientRect(), cR = cellEl.getBoundingClientRect();
-      var offsets = [[-6,-6],[6,-6],[-6,6],[6,6]];
-      var oi = 0; if (players.length > 1) { var same = players.filter(function(p){return p.position===cidx&&!p.finished;}); for(var i=0;i<same.length;i++) if(same[i].id===pid){oi=i;break;} oi=oi%4; }
-      tok.style.transition = anim ? 'left 0.25s ease, top 0.25s ease' : 'none';
-      tok.style.left = (cR.left - wR.left + cR.width/2 - 12 + offsets[oi][0]) + 'px';
-      tok.style.top = (cR.top - wR.top + cR.height/2 - 12 + offsets[oi][1]) + 'px';
+      var tok=document.getElementById('token-'+pid), cellEl=getCellEl(cidx), wrap=document.getElementById('boardWrap');
+      if(!tok||!cellEl||!wrap) return;
+      var wR=wrap.getBoundingClientRect(), cR=cellEl.getBoundingClientRect();
+      var offsets=[[-6,-6],[6,-6],[-6,6],[6,6]];
+      var oi=0; if(players.length>1){var same=players.filter(function(p){return p.position===cidx&&!p.finished;}); for(var i=0;i<same.length;i++) if(same[i].id===pid){oi=i;break;} oi=oi%4;}
+      tok.style.transition=anim?'left 0.25s ease, top 0.25s ease':'none';
+      tok.style.left=(cR.left-wR.left+cR.width/2-12+offsets[oi][0])+'px';
+      tok.style.top=(cR.top-wR.top+cR.height/2-12+offsets[oi][1])+'px';
     }
-    function positionAllTokens(anim) { players.forEach(function(p){if(!p.finished) positionToken(p.id, p.position, anim);}); }
+    function positionAllTokens(anim) { players.forEach(function(p){if(!p.finished) positionToken(p.id,p.position,anim);}); }
 
     /* === UI === */
     function renderPlayerTags() {
       document.getElementById('players').innerHTML = players.map(function(p) {
-        var active = p.id === currentPlayer && !p.finished ? ' player-tag--active' : '';
-        var fin = p.finished ? ' (완료)' : '', rC = p.rewards.length > 0 ? ' 🎁' + p.rewards.length : '';
-        return '<div class="player-tag' + active + '"><span class="player-tag__dot player-tag__dot--p' + p.id + '"></span><span>' + p.name + fin + rC + '</span></div>';
+        var active=p.id===currentPlayer&&!p.finished?' player-tag--active':'';
+        var fin=p.finished?' (완료)':'', rC=p.rewards.length>0?' 🎁'+p.rewards.length:'';
+        return '<div class="player-tag'+active+'"><span class="player-tag__dot player-tag__dot--p'+p.id+'"></span><span>'+p.name+fin+rC+'</span></div>';
       }).join('');
     }
     function updateStatus() {
-      var p = players[currentPlayer];
-      document.getElementById('status').textContent = PLAYER_ICONS[p.id] + ' ' + p.name + '의 차례입니다! (위치: ' + p.position + '번 칸)';
+      var p=players[currentPlayer];
+      document.getElementById('status').textContent=PLAYER_ICONS[p.id]+' '+p.name+'의 차례입니다! (위치: '+p.position+'번 칸)';
       renderPlayerTags(); highlightCell(p.position);
     }
 
     /* === Roll === */
     document.getElementById('btnRoll').addEventListener('click', rollDice);
     function rollDice() {
-      if (rolling || allFinished || !diceBox) return;
-      rolling = true;
-      document.getElementById('btnRoll').disabled = true;
-      document.getElementById('diceResultText').textContent = '';
+      if(rolling||allFinished||!diceBox) return;
+      rolling=true;
+      document.getElementById('btnRoll').disabled=true;
+      document.getElementById('diceResultText').textContent='';
       diceBox.roll('1d6');
     }
-
     function handleDiceResult(results) {
-      var result = results[0].value;
-      document.getElementById('diceResultText').textContent = '🎲 ' + result + ' !';
-      setTimeout(function() { moveCurrentPlayer(result); }, 500);
+      var result=results[0].value;
+      document.getElementById('diceResultText').textContent='🎲 '+result+' !';
+      setTimeout(function(){moveCurrentPlayer(result);},600);
     }
 
     /* === Move === */
     function moveCurrentPlayer(steps) {
-      var p = players[currentPlayer], targetPos = p.position + steps;
-      if (targetPos >= 20) targetPos = 20;
-      var positions = [];
-      for (var i = p.position + 1; i <= Math.min(targetPos, 19); i++) positions.push(i);
-      if (positions.length === 0) { finishPlayer(currentPlayer); return; }
-      var step = 0;
-      var moveInterval = setInterval(function() {
-        if (step >= positions.length) { clearInterval(moveInterval); p.position = positions[positions.length-1]; positionAllTokens(false); if (targetPos >= 20) finishPlayer(currentPlayer); else triggerEvent(currentPlayer, p.position); return; }
-        p.position = positions[step]; positionToken(p.id, positions[step], true); highlightCell(positions[step]); step++;
-      }, 300);
+      var p=players[currentPlayer], targetPos=p.position+steps;
+      if(targetPos>=20) targetPos=20;
+      var positions=[];
+      for(var i=p.position+1;i<=Math.min(targetPos,19);i++) positions.push(i);
+      if(positions.length===0){finishPlayer(currentPlayer);return;}
+      var step=0;
+      var moveInterval=setInterval(function(){
+        if(step>=positions.length){clearInterval(moveInterval);p.position=positions[positions.length-1];positionAllTokens(false);if(targetPos>=20)finishPlayer(currentPlayer);else triggerEvent(currentPlayer,p.position);return;}
+        p.position=positions[step];positionToken(p.id,positions[step],true);highlightCell(positions[step]);step++;
+      },300);
     }
 
     /* === Events === */
-    function triggerEvent(playerIdx, cellIdx) {
-      var cell = CELLS[cellIdx], p = players[playerIdx];
-      if (!cell) { nextTurn(); return; }
-      var h = {
-        start: function(){nextTurn();},
-        coupon: function(){p.rewards.push(cell.reward); showModal('🎁','쿠폰 획득!',p.name+'님이 '+cell.reward+'을 획득!',false);},
-        mission: function(){p.rewards.push(cell.reward); showModal('🎯','미션!',p.name+'님! '+cell.reward+' 완료 시 추가 경품!',false);},
-        blank: function(){showModal('💨','아쉬워요!',p.name+'님, 다음 기회를 노려보세요!',false);},
-        bonus: function(){showModal('🎲','보너스!',p.name+'님, 주사위를 한 번 더!',true);},
-        special: function(){p.rewards.push(cell.reward); showModal('⭐','축하합니다!',p.name+'님! '+cell.reward,false);}
+    function triggerEvent(pi,ci) {
+      var cell=CELLS[ci],p=players[pi];
+      if(!cell){nextTurn();return;}
+      var h={
+        start:function(){nextTurn();},
+        coupon:function(){p.rewards.push(cell.reward);showModal('🎁','쿠폰 획득!',p.name+'님이 '+cell.reward+'을 획득!',false);},
+        mission:function(){p.rewards.push(cell.reward);showModal('🎯','미션!',p.name+'님! '+cell.reward+' 완료 시 추가 경품!',false);},
+        blank:function(){showModal('💨','아쉬워요!',p.name+'님, 다음 기회를 노려보세요!',false);},
+        bonus:function(){showModal('🎲','보너스!',p.name+'님, 주사위를 한 번 더!',true);},
+        special:function(){p.rewards.push(cell.reward);showModal('⭐','축하합니다!',p.name+'님! '+cell.reward,false);}
       };
-      (h[cell.type] || function(){nextTurn();})();
+      (h[cell.type]||function(){nextTurn();})();
     }
 
-    var pendingBonus = false;
-    function showModal(icon, title, desc, isBonus) {
-      document.getElementById('modalIcon').textContent = icon;
-      document.getElementById('modalTitle').textContent = title;
-      document.getElementById('modalDesc').textContent = desc;
+    var pendingBonus=false;
+    function showModal(icon,title,desc,isBonus) {
+      document.getElementById('modalIcon').textContent=icon;
+      document.getElementById('modalTitle').textContent=title;
+      document.getElementById('modalDesc').textContent=desc;
       document.getElementById('modal').classList.add('modal-overlay--show');
-      pendingBonus = isBonus;
-      document.getElementById('modalBtn').onclick = function() {
+      pendingBonus=isBonus;
+      document.getElementById('modalBtn').onclick=function(){
         document.getElementById('modal').classList.remove('modal-overlay--show');
-        if (pendingBonus) enableRoll(); else nextTurn();
+        if(pendingBonus) enableRoll(); else nextTurn();
       };
     }
 
     /* === Turn === */
     function nextTurn() {
-      if (checkAllFinished()) return;
-      do { currentPlayer = (currentPlayer + 1) % players.length; } while (players[currentPlayer].finished && !checkAllFinished());
-      if (checkAllFinished()) return;
-      enableRoll(); updateStatus(); positionAllTokens(false);
+      if(checkAllFinished()) return;
+      do{currentPlayer=(currentPlayer+1)%players.length;}while(players[currentPlayer].finished&&!checkAllFinished());
+      if(checkAllFinished()) return;
+      enableRoll();updateStatus();positionAllTokens(false);
     }
-    function enableRoll() { rolling = false; document.getElementById('btnRoll').disabled = false; updateStatus(); if(diceBox) diceBox.clear(); }
+    function enableRoll() { rolling=false;document.getElementById('btnRoll').disabled=false;updateStatus();if(diceBox)diceBox.clear(); }
     function finishPlayer(pi) {
-      players[pi].finished = true;
-      var tok = document.getElementById('token-' + pi); if(tok) tok.style.opacity = '0.4';
+      players[pi].finished=true;
+      var tok=document.getElementById('token-'+pi);if(tok)tok.style.opacity='0.4';
       renderPlayerTags();
-      if (checkAllFinished()) showResult(); else showModal('🏁','골인!',players[pi].name+'님이 완주했습니다!',false);
+      if(checkAllFinished())showResult();else showModal('🏁','골인!',players[pi].name+'님이 완주했습니다!',false);
     }
-    function checkAllFinished() { allFinished = players.every(function(p){return p.finished;}); return allFinished; }
+    function checkAllFinished(){allFinished=players.every(function(p){return p.finished;});return allFinished;}
 
     /* === Result === */
     function showResult() {
-      document.getElementById('controls').style.display = 'none';
-      document.getElementById('status').style.display = 'none';
+      document.getElementById('controls').style.display='none';
+      document.getElementById('status').style.display='none';
       document.getElementById('result').classList.add('result--show');
-      var html = '';
-      players.forEach(function(p) {
-        html += '<div class="result__player"><div class="result__player-name"><span class="player-tag__dot player-tag__dot--p'+p.id+'" style="width:16px;height:16px;border-radius:50%;display:inline-block"></span> '+p.name+' - '+p.rewards.length+'개 경품</div>';
-        if (p.rewards.length===0) html += '<div class="result__item">😅 획득한 경품이 없습니다</div>';
-        else p.rewards.forEach(function(r){ html += '<div class="result__item">🎁 '+r+'</div>'; });
-        html += '</div>';
+      var html='';
+      players.forEach(function(p){
+        html+='<div class="result__player"><div class="result__player-name"><span class="player-tag__dot player-tag__dot--p'+p.id+'" style="width:16px;height:16px;border-radius:50%;display:inline-block"></span> '+p.name+' - '+p.rewards.length+'개 경품</div>';
+        if(p.rewards.length===0)html+='<div class="result__item">😅 획득한 경품이 없습니다</div>';
+        else p.rewards.forEach(function(r){html+='<div class="result__item">🎁 '+r+'</div>';});
+        html+='</div>';
       });
-      document.getElementById('resultContent').innerHTML = html;
+      document.getElementById('resultContent').innerHTML=html;
     }
 
-    window.addEventListener('resize', function(){positionAllTokens(false);});
+    window.addEventListener('resize',function(){positionAllTokens(false);});
   </script>
 </body>
 </html>
