@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>부루마블 이벤트 게임</title>
+  <meta name="description" content="팝업스토어 이벤트용 부루마블 웹 게임 - 최대 4명">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #4A90D9;
+      --color-accent: #FF6B6B;
+      --color-gold: #FFD93D;
+      --color-green: #6BCB77;
+      --color-purple: #9B59B6;
+      --color-dark: #2C3E50;
+      --color-white: #FFFFFF;
+      --color-gray: #95A5A6;
+      --color-light: #ECF0F1;
+      --color-board-bg: #F8F4E8;
+      --font-main: 'Pretendard', -apple-system, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-main); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; color: var(--color-dark); }
+
+    .header { text-align: center; padding: 20px 16px 10px; color: var(--color-white); }
+    .header__title { font-size: 28px; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+    .header__sub { font-size: 14px; opacity: 0.8; margin-top: 4px; }
+
+    .game { background: var(--color-white); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); margin: 10px 16px 20px; padding: 16px; max-width: 600px; width: calc(100% - 32px); }
+
+    /* === Setup Screen === */
+    .setup { text-align: center; padding: 20px 0; }
+    .setup__title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+    .setup__options { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
+    .setup__btn { width: 60px; height: 60px; border-radius: 12px; border: 3px solid var(--color-light); background: var(--color-white); font-size: 24px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-family: var(--font-main); }
+    .setup__btn:hover { border-color: var(--color-primary); }
+    .setup__btn--selected { border-color: var(--color-primary); background: var(--color-primary); color: white; }
+    .setup__start { background: linear-gradient(135deg, var(--color-accent), #ee5a5a); color: white; border: none; padding: 14px 48px; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: var(--font-main); }
+    .setup__start:disabled { background: var(--color-gray); cursor: not-allowed; }
+
+    /* === Board === */
+    .board-wrap { position: relative; }
+    .board { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); gap: 3px; width: 100%; aspect-ratio: 1; background: var(--color-board-bg); border-radius: 12px; padding: 6px; }
+    .cell { background: var(--color-white); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px; position: relative; border: 2px solid transparent; transition: border-color 0.3s; min-height: 0; }
+    .cell--active { border-color: var(--color-accent); z-index: 2; }
+    .cell--hidden { visibility: hidden; background: transparent; }
+    .cell__icon { font-size: 18px; line-height: 1; }
+    .cell__name { font-size: 8px; margin-top: 1px; color: var(--color-dark); text-align: center; font-weight: 600; }
+    .cell--start { background: linear-gradient(135deg, #FF6B6B, #ee5a5a); color: white; }
+    .cell--start .cell__name { color: white; }
+    .cell--coupon { border-left: 3px solid var(--color-accent); }
+    .cell--mission { border-left: 3px solid var(--color-primary); }
+    .cell--blank { border-left: 3px solid var(--color-gray); }
+    .cell--bonus { border-left: 3px solid var(--color-gold); }
+    .cell--special { border-left: 3px solid var(--color-purple); }
+
+    /* === Tokens (inside board) === */
+    .token { position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--color-white); box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 10; transition: left 0.3s ease, top 0.3s ease; display: flex; align-items: center; justify-content: center; font-size: 12px; pointer-events: none; }
+    .token--p0 { background: #FF6B6B; }
+    .token--p1 { background: #4A90D9; }
+    .token--p2 { background: #6BCB77; }
+    .token--p3 { background: #FFD93D; }
+
+    /* === Player Info === */
+    .players { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .player-tag { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 2px solid transparent; background: var(--color-light); }
+    .player-tag--active { border-color: var(--color-dark); background: var(--color-white); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .player-tag__dot { width: 14px; height: 14px; border-radius: 50%; }
+    .player-tag__dot--p0 { background: #FF6B6B; }
+    .player-tag__dot--p1 { background: #4A90D9; }
+    .player-tag__dot--p2 { background: #6BCB77; }
+    .player-tag__dot--p3 { background: #FFD93D; }
+    .player-tag__rewards { font-size: 11px; color: var(--color-gray); }
+
+    /* === Controls === */
+    .controls { text-align: center; margin-top: 16px; }
+    .dice { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: var(--color-white); border: 3px solid var(--color-dark); border-radius: 12px; font-size: 36px; font-weight: 800; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .dice--rolling { animation: diceRoll 0.1s infinite; }
+    @keyframes diceRoll { 0%{transform:rotate(0) scale(1)} 25%{transform:rotate(10deg) scale(1.1)} 50%{transform:rotate(-10deg) scale(.95)} 75%{transform:rotate(5deg) scale(1.05)} 100%{transform:rotate(0) scale(1)} }
+    .btn-roll { background: linear-gradient(135deg, var(--color-accent), #ee5a5a); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: var(--font-main); box-shadow: 0 4px 16px rgba(255,107,107,0.4); transition: transform 0.2s; }
+    .btn-roll:hover { transform: translateY(-2px); }
+    .btn-roll:disabled { background: var(--color-gray); cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status { text-align: center; margin-top: 12px; padding: 10px; background: var(--color-light); border-radius: 8px; font-size: 14px; font-weight: 600; }
+
+    /* === Modal === */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay--show { display: flex; }
+    .modal { background: var(--color-white); border-radius: 20px; padding: 32px 24px; max-width: 360px; width: 100%; text-align: center; animation: modalIn 0.3s ease; }
+    @keyframes modalIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    .modal__icon { font-size: 56px; margin-bottom: 12px; }
+    .modal__title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .modal__desc { font-size: 15px; color: var(--color-gray); margin-bottom: 20px; line-height: 1.5; }
+    .modal__btn { background: var(--color-primary); color: white; border: none; padding: 12px 32px; border-radius: 50px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: var(--font-main); }
+
+    /* === Result === */
+    .result { display: none; text-align: center; padding: 20px 0; }
+    .result--show { display: block; }
+    .result__title { font-size: 22px; font-weight: 800; margin-bottom: 16px; }
+    .result__player { text-align: left; margin: 12px 0; padding: 12px; background: var(--color-light); border-radius: 10px; }
+    .result__player-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .result__item { font-size: 13px; padding: 4px 0; color: var(--color-dark); }
+    .btn-restart { background: var(--color-green); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: var(--font-main); margin-top: 16px; }
+
+    .hidden { display: none; }
+
+    @media (max-width: 480px) {
+      .header__title { font-size: 22px; }
+      .game { padding: 10px; margin: 8px 8px 16px; }
+      .cell__icon { font-size: 14px; }
+      .cell__name { font-size: 7px; }
+      .token { width: 20px; height: 20px; font-size: 10px; }
+      .dice { width: 52px; height: 52px; font-size: 28px; }
+      .btn-roll { padding: 12px 32px; font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">🎲 부루마블 이벤트</h1>
+    <p class="header__sub">주사위를 굴려 경품을 획득하세요!</p>
+  </header>
+
+  <div class="game">
+    <!-- Setup Screen -->
+    <div class="setup" id="setup">
+      <div class="setup__title">참여 인원을 선택하세요</div>
+      <div class="setup__options" id="setupOptions">
+        <button class="setup__btn" data-count="1">1</button>
+        <button class="setup__btn" data-count="2">2</button>
+        <button class="setup__btn" data-count="3">3</button>
+        <button class="setup__btn" data-count="4">4</button>
+      </div>
+      <button class="setup__start" id="setupStart" disabled>게임 시작</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="hidden">
+      <!-- Players -->
+      <div class="players" id="players"></div>
+
+      <!-- Board -->
+      <div class="board-wrap" id="boardWrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls" id="controls">
+        <div class="dice" id="dice">?</div><br>
+        <button class="btn-roll" id="btnRoll">🎲 주사위 굴리기</button>
+      </div>
+
+      <!-- Status -->
+      <div class="status" id="status">주사위를 굴려 게임을 시작하세요!</div>
+
+      <!-- Result -->
+      <div class="result" id="result">
+        <div class="modal__icon">🎉</div>
+        <div class="result__title">게임 완료!</div>
+        <div id="resultContent"></div>
+        <button class="btn-restart" onclick="goToSetup()">🔄 다시 하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal__icon" id="modalIcon">🎁</div>
+      <div class="modal__title" id="modalTitle">이벤트!</div>
+      <div class="modal__desc" id="modalDesc">내용</div>
+      <button class="modal__btn" id="modalBtn">확인</button>
+    </div>
+  </div>
+
+  <script>
+    var CELLS = [
+      { id:0,  name:'출발',     type:'start',   icon:'🚀' },
+      { id:1,  name:'10% 쿠폰', type:'coupon',  icon:'🎁', reward:'10% 할인 쿠폰' },
+      { id:2,  name:'꽝',       type:'blank',   icon:'💨' },
+      { id:3,  name:'미션',     type:'mission', icon:'🎯', reward:'SNS 공유 미션' },
+      { id:4,  name:'보너스',   type:'bonus',   icon:'🎲' },
+      { id:5,  name:'무료배송', type:'coupon',  icon:'📦', reward:'무료배송 쿠폰' },
+      { id:6,  name:'꽝',       type:'blank',   icon:'💨' },
+      { id:7,  name:'특별경품', type:'special', icon:'⭐', reward:'특별 경품 당첨!' },
+      { id:8,  name:'미션',     type:'mission', icon:'🎯', reward:'사진 찍기 미션' },
+      { id:9,  name:'꽝',       type:'blank',   icon:'💨' },
+      { id:10, name:'5% 쿠폰',  type:'coupon',  icon:'🎁', reward:'5% 할인 쿠폰' },
+      { id:11, name:'보너스',   type:'bonus',   icon:'🎲' },
+      { id:12, name:'미션',     type:'mission', icon:'🎯', reward:'리뷰 작성 미션' },
+      { id:13, name:'꽝',       type:'blank',   icon:'💨' },
+      { id:14, name:'20% 쿠폰', type:'coupon',  icon:'🎁', reward:'20% 할인 쿠폰' },
+      { id:15, name:'꽝',       type:'blank',   icon:'💨' },
+      { id:16, name:'특별경품', type:'special', icon:'⭐', reward:'특별 경품 당첨!' },
+      { id:17, name:'미션',     type:'mission', icon:'🎯', reward:'친구 태그 미션' },
+      { id:18, name:'보너스',   type:'bonus',   icon:'🎲' },
+      { id:19, name:'꽝',       type:'blank',   icon:'💨' }
+    ];
+
+    var GRID_MAP = [
+      [0,1,2,3,4,5],[19,-1,-1,-1,-1,6],[18,-1,-1,-1,-1,7],
+      [17,-1,-1,-1,-1,8],[16,-1,-1,-1,-1,9],[15,14,13,12,11,10]
+    ];
+
+    var PLAYER_COLORS = ['#FF6B6B','#4A90D9','#6BCB77','#FFD93D'];
+    var PLAYER_ICONS = ['🔴','🔵','🟢','🟡'];
+    var PLAYER_NAMES = ['플레이어1','플레이어2','플레이어3','플레이어4'];
+
+    var playerCount = 0;
+    var players = [];
+    var currentPlayer = 0;
+    var rolling = false;
+    var allFinished = false;
+
+    /* === Setup === */
+    document.querySelectorAll('.setup__btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.setup__btn').forEach(function(b) { b.classList.remove('setup__btn--selected'); });
+        btn.classList.add('setup__btn--selected');
+        playerCount = parseInt(btn.dataset.count);
+        document.getElementById('setupStart').disabled = false;
+      });
+    });
+
+    document.getElementById('setupStart').addEventListener('click', function() {
+      if (playerCount < 1) return;
+      startGame(playerCount);
+    });
+
+    function startGame(count) {
+      players = [];
+      for (var i = 0; i < count; i++) {
+        players.push({ id: i, name: PLAYER_NAMES[i], position: 0, rewards: [], finished: false });
+      }
+      currentPlayer = 0;
+      rolling = false;
+      allFinished = false;
+
+      document.getElementById('setup').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+      document.getElementById('controls').style.display = '';
+      document.getElementById('status').style.display = '';
+      document.getElementById('result').classList.remove('result--show');
+
+      buildBoard();
+      renderPlayerTags();
+      createTokens();
+      positionAllTokens(false);
+      updateStatus();
+      document.getElementById('dice').textContent = '?';
+      document.getElementById('btnRoll').disabled = false;
+    }
+
+    function goToSetup() {
+      document.getElementById('setup').classList.remove('hidden');
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.querySelectorAll('.setup__btn').forEach(function(b) { b.classList.remove('setup__btn--selected'); });
+      document.getElementById('setupStart').disabled = true;
+      playerCount = 0;
+    }
+
+    /* === Board === */
+    function buildBoard() {
+      var board = document.getElementById('board');
+      board.innerHTML = '';
+      for (var r = 0; r < 6; r++) {
+        for (var c = 0; c < 6; c++) {
+          var idx = GRID_MAP[r][c];
+          var div = document.createElement('div');
+          if (idx === -1) {
+            div.className = 'cell cell--hidden';
+          } else {
+            var cell = CELLS[idx];
+            div.className = 'cell cell--' + cell.type;
+            div.setAttribute('data-cell', idx);
+            div.innerHTML = '<span class="cell__icon">' + cell.icon + '</span><span class="cell__name">' + cell.name + '</span>';
+          }
+          board.appendChild(div);
+        }
+      }
+    }
+
+    function getCellEl(idx) {
+      return document.querySelector('[data-cell="' + idx + '"]');
+    }
+
+    /* === Tokens === */
+    function createTokens() {
+      var wrap = document.getElementById('boardWrap');
+      wrap.querySelectorAll('.token').forEach(function(t) { t.remove(); });
+      players.forEach(function(p) {
+        var tok = document.createElement('div');
+        tok.className = 'token token--p' + p.id;
+        tok.id = 'token-' + p.id;
+        tok.textContent = PLAYER_ICONS[p.id];
+        wrap.appendChild(tok);
+      });
+    }
+
+    function positionToken(playerId, cellIdx, animate) {
+      var tok = document.getElementById('token-' + playerId);
+      var cellEl = getCellEl(cellIdx);
+      var wrap = document.getElementById('boardWrap');
+      if (!tok || !cellEl || !wrap) return;
+
+      var wRect = wrap.getBoundingClientRect();
+      var cRect = cellEl.getBoundingClientRect();
+
+      var offsetIndex = getTokenOffset(playerId, cellIdx);
+      var offsets = [[-6,-6],[6,-6],[-6,6],[6,6]];
+      var ox = offsets[offsetIndex][0];
+      var oy = offsets[offsetIndex][1];
+
+      var left = cRect.left - wRect.left + (cRect.width / 2) - 12 + ox;
+      var top = cRect.top - wRect.top + (cRect.height / 2) - 12 + oy;
+
+      tok.style.transition = animate ? 'left 0.25s ease, top 0.25s ease' : 'none';
+      tok.style.left = left + 'px';
+      tok.style.top = top + 'px';
+    }
+
+    function getTokenOffset(playerId, cellIdx) {
+      if (players.length === 1) return 0;
+      var sameCell = players.filter(function(p) { return p.position === cellIdx && !p.finished; });
+      var idx = 0;
+      for (var i = 0; i < sameCell.length; i++) {
+        if (sameCell[i].id === playerId) { idx = i; break; }
+      }
+      return idx % 4;
+    }
+
+    function positionAllTokens(animate) {
+      players.forEach(function(p) {
+        if (!p.finished) positionToken(p.id, p.position, animate);
+      });
+    }
+
+    /* === Player Tags === */
+    function renderPlayerTags() {
+      var container = document.getElementById('players');
+      container.innerHTML = players.map(function(p) {
+        var active = p.id === currentPlayer && !p.finished ? ' player-tag--active' : '';
+        var fin = p.finished ? ' (완료)' : '';
+        var rCount = p.rewards.length > 0 ? ' 🎁' + p.rewards.length : '';
+        return '<div class="player-tag' + active + '" id="ptag-' + p.id + '">' +
+          '<span class="player-tag__dot player-tag__dot--p' + p.id + '"></span>' +
+          '<span>' + p.name + fin + rCount + '</span></div>';
+      }).join('');
+    }
+
+    /* === Status === */
+    function updateStatus() {
+      var p = players[currentPlayer];
+      document.getElementById('status').textContent = PLAYER_ICONS[p.id] + ' ' + p.name + '의 차례입니다! (위치: ' + p.position + '번 칸)';
+      renderPlayerTags();
+      highlightCell(p.position);
+    }
+
+    function highlightCell(idx) {
+      document.querySelectorAll('.cell--active').forEach(function(c) { c.classList.remove('cell--active'); });
+      var el = getCellEl(idx);
+      if (el) el.classList.add('cell--active');
+    }
+
+    /* === Dice === */
+    document.getElementById('btnRoll').addEventListener('click', rollDice);
+
+    function rollDice() {
+      if (rolling || allFinished) return;
+      rolling = true;
+      var btn = document.getElementById('btnRoll');
+      var dice = document.getElementById('dice');
+      btn.disabled = true;
+      dice.classList.add('dice--rolling');
+
+      var count = 0;
+      var interval = setInterval(function() {
+        dice.textContent = Math.floor(Math.random() * 6) + 1;
+        count++;
+        if (count > 15) {
+          clearInterval(interval);
+          var result = Math.floor(Math.random() * 6) + 1;
+          dice.textContent = result;
+          dice.classList.remove('dice--rolling');
+          moveCurrentPlayer(result);
+        }
+      }, 80);
+    }
+
+    /* === Move === */
+    function moveCurrentPlayer(steps) {
+      var p = players[currentPlayer];
+      var targetPos = p.position + steps;
+      if (targetPos >= 20) targetPos = 20;
+
+      var positions = [];
+      for (var i = p.position + 1; i <= Math.min(targetPos, 19); i++) {
+        positions.push(i);
+      }
+
+      if (positions.length === 0) {
+        finishPlayer(currentPlayer);
+        return;
+      }
+
+      var step = 0;
+      var moveInterval = setInterval(function() {
+        if (step >= positions.length) {
+          clearInterval(moveInterval);
+          p.position = positions[positions.length - 1];
+          positionAllTokens(false);
+          if (targetPos >= 20) {
+            finishPlayer(currentPlayer);
+          } else {
+            triggerEvent(currentPlayer, p.position);
+          }
+          return;
+        }
+        p.position = positions[step];
+        positionToken(p.id, positions[step], true);
+        highlightCell(positions[step]);
+        step++;
+      }, 300);
+    }
+
+    /* === Events === */
+    function triggerEvent(playerIdx, cellIdx) {
+      var cell = CELLS[cellIdx];
+      var p = players[playerIdx];
+      if (!cell) { nextTurn(); return; }
+
+      var handlers = {
+        start: function() { nextTurn(); },
+        coupon: function() { p.rewards.push(cell.reward); showModal('🎁', '쿠폰 획득!', p.name + '님이 ' + cell.reward + '을 획득!', false); },
+        mission: function() { p.rewards.push(cell.reward); showModal('🎯', '미션!', p.name + '님! ' + cell.reward + ' 완료 시 추가 경품!', false); },
+        blank: function() { showModal('💨', '아쉬워요!', p.name + '님, 다음 기회를 노려보세요!', false); },
+        bonus: function() { showModal('🎲', '보너스!', p.name + '님, 주사위를 한 번 더!', true); },
+        special: function() { p.rewards.push(cell.reward); showModal('⭐', '축하합니다!', p.name + '님! ' + cell.reward, false); }
+      };
+
+      var handler = handlers[cell.type];
+      if (handler) handler();
+      else nextTurn();
+    }
+
+    var pendingBonus = false;
+
+    function showModal(icon, title, desc, isBonus) {
+      document.getElementById('modalIcon').textContent = icon;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalDesc').textContent = desc;
+      document.getElementById('modal').classList.add('modal-overlay--show');
+      pendingBonus = isBonus;
+      document.getElementById('modalBtn').onclick = function() {
+        document.getElementById('modal').classList.remove('modal-overlay--show');
+        if (pendingBonus) {
+          enableRoll();
+        } else {
+          nextTurn();
+        }
+      };
+    }
+
+    /* === Turn === */
+    function nextTurn() {
+      if (checkAllFinished()) return;
+      do {
+        currentPlayer = (currentPlayer + 1) % players.length;
+      } while (players[currentPlayer].finished && !checkAllFinished());
+
+      if (checkAllFinished()) return;
+      enableRoll();
+      updateStatus();
+      positionAllTokens(false);
+    }
+
+    function enableRoll() {
+      rolling = false;
+      document.getElementById('btnRoll').disabled = false;
+      updateStatus();
+    }
+
+    function finishPlayer(playerIdx) {
+      players[playerIdx].finished = true;
+      var tok = document.getElementById('token-' + playerIdx);
+      if (tok) tok.style.opacity = '0.4';
+      renderPlayerTags();
+
+      if (checkAllFinished()) {
+        showResult();
+      } else {
+        showModal('🏁', '골인!', players[playerIdx].name + '님이 완주했습니다!', false);
+      }
+    }
+
+    function checkAllFinished() {
+      allFinished = players.every(function(p) { return p.finished; });
+      return allFinished;
+    }
+
+    /* === Result === */
+    function showResult() {
+      document.getElementById('controls').style.display = 'none';
+      document.getElementById('status').style.display = 'none';
+      var result = document.getElementById('result');
+      result.classList.add('result--show');
+
+      var html = '';
+      players.forEach(function(p) {
+        html += '<div class="result__player">';
+        html += '<div class="result__player-name"><span class="player-tag__dot player-tag__dot--p' + p.id + '" style="width:16px;height:16px;border-radius:50%;display:inline-block"></span> ' + p.name + ' - ' + p.rewards.length + '개 경품</div>';
+        if (p.rewards.length === 0) {
+          html += '<div class="result__item">😅 획득한 경품이 없습니다</div>';
+        } else {
+          p.rewards.forEach(function(r) {
+            html += '<div class="result__item">🎁 ' + r + '</div>';
+          });
+        }
+        html += '</div>';
+      });
+      document.getElementById('resultContent').innerHTML = html;
+    }
+
+    /* === Resize === */
+    window.addEventListener('resize', function() { positionAllTokens(false); });
+  </script>
+</body>
+</html>
