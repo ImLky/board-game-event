@@ -4,406 +4,349 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>부루마블 이벤트 게임</title>
-  <meta name="description" content="팝업스토어 이벤트용 부루마블 웹 게임 - 최대 4명">
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" rel="stylesheet">
   <style>
     :root {
-      --color-primary: #4A90D9;
-      --color-accent: #FF6B6B;
-      --color-gold: #FFD93D;
-      --color-green: #6BCB77;
-      --color-purple: #9B59B6;
-      --color-dark: #2C3E50;
-      --color-white: #FFFFFF;
-      --color-gray: #95A5A6;
-      --color-light: #ECF0F1;
-      --color-board-bg: #F8F4E8;
-      --font-main: 'Pretendard', -apple-system, sans-serif;
+      --accent:#FF6B6B; --primary:#4A90D9; --gold:#FFD93D; --green:#6BCB77;
+      --purple:#9B59B6; --dark:#2C3E50; --white:#FFF; --gray:#95A5A6;
+      --light:#ECF0F1; --board-bg:#F8F4E8; --font:'Pretendard',-apple-system,sans-serif;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--font-main); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; color: var(--color-dark); }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;flex-direction:column;align-items:center;color:var(--dark)}
 
-    .header { text-align: center; padding: 20px 16px 10px; color: var(--color-white); }
-    .header__title { font-size: 28px; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-    .header__sub { font-size: 14px; opacity: 0.8; margin-top: 4px; }
+    .header{text-align:center;padding:20px 16px 10px;color:var(--white)}
+    .header h1{font-size:28px;font-weight:800;text-shadow:2px 2px 4px rgba(0,0,0,.3)}
+    .header p{font-size:14px;opacity:.8;margin-top:4px}
 
-    .game { background: var(--color-white); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); margin: 10px 16px 20px; padding: 16px; max-width: 600px; width: calc(100% - 32px); }
+    .game{background:var(--white);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);margin:10px 16px 20px;padding:16px;max-width:600px;width:calc(100% - 32px)}
 
     /* Setup */
-    .setup { text-align: center; padding: 20px 0; }
-    .setup__title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
-    .setup__options { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
-    .setup__btn { width: 60px; height: 60px; border-radius: 12px; border: 3px solid var(--color-light); background: var(--color-white); font-size: 24px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-family: var(--font-main); }
-    .setup__btn:hover { border-color: var(--color-primary); }
-    .setup__btn--selected { border-color: var(--color-primary); background: var(--color-primary); color: white; }
-    .setup__start { background: linear-gradient(135deg, var(--color-accent), #ee5a5a); color: white; border: none; padding: 14px 48px; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: var(--font-main); }
-    .setup__start:disabled { background: var(--color-gray); cursor: not-allowed; }
+    .setup{text-align:center;padding:20px 0}
+    .setup h2{font-size:20px;font-weight:700;margin-bottom:16px}
+    .setup-opts{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+    .setup-btn{width:60px;height:60px;border-radius:12px;border:3px solid var(--light);background:var(--white);font-size:24px;font-weight:800;cursor:pointer;transition:.2s;font-family:var(--font)}
+    .setup-btn:hover{border-color:var(--primary)}
+    .setup-btn.sel{border-color:var(--primary);background:var(--primary);color:#fff}
+    .start-btn{background:linear-gradient(135deg,var(--accent),#ee5a5a);color:#fff;border:0;padding:14px 48px;border-radius:50px;font-size:18px;font-weight:700;cursor:pointer;font-family:var(--font)}
+    .start-btn:disabled{background:var(--gray);cursor:not-allowed}
 
     /* Board */
-    .board-wrap { position: relative; }
-    .board { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); gap: 3px; width: 100%; aspect-ratio: 1; background: var(--color-board-bg); border-radius: 12px; padding: 6px; }
-    .cell { background: var(--color-white); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px; position: relative; border: 2px solid transparent; transition: border-color 0.3s; min-height: 0; }
-    .cell--active { border-color: var(--color-accent); z-index: 2; }
-    .cell--hidden { visibility: hidden; background: transparent; }
-    .cell__icon { font-size: 18px; line-height: 1; }
-    .cell__name { font-size: 8px; margin-top: 1px; color: var(--color-dark); text-align: center; font-weight: 600; }
-    .cell--start { background: linear-gradient(135deg, #FF6B6B, #ee5a5a); color: white; }
-    .cell--start .cell__name { color: white; }
-    .cell--coupon { border-left: 3px solid var(--color-accent); }
-    .cell--mission { border-left: 3px solid var(--color-primary); }
-    .cell--blank { border-left: 3px solid var(--color-gray); }
-    .cell--bonus { border-left: 3px solid var(--color-gold); }
-    .cell--special { border-left: 3px solid var(--color-purple); }
+    .board-wrap{position:relative}
+    .board{display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(6,1fr);gap:3px;width:100%;aspect-ratio:1;background:var(--board-bg);border-radius:12px;padding:6px}
+    .cell{background:var(--white);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;border:2px solid transparent;transition:.3s;min-height:0}
+    .cell.active{border-color:var(--accent);z-index:2}
+    .cell.hide{visibility:hidden;background:0 0}
+    .cell .ico{font-size:18px;line-height:1}
+    .cell .nm{font-size:8px;margin-top:1px;font-weight:600;text-align:center}
+    .cell.start{background:linear-gradient(135deg,#FF6B6B,#ee5a5a);color:#fff}
+    .cell.start .nm{color:#fff}
+    .cell.coupon{border-left:3px solid var(--accent)}
+    .cell.mission{border-left:3px solid var(--primary)}
+    .cell.blank{border-left:3px solid var(--gray)}
+    .cell.bonus{border-left:3px solid var(--gold)}
+    .cell.special{border-left:3px solid var(--purple)}
 
-    /* Tokens */
-    .token { position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--color-white); box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 10; transition: left 0.3s ease, top 0.3s ease; display: flex; align-items: center; justify-content: center; font-size: 12px; pointer-events: none; }
-    .token--p0 { background: #FF6B6B; }
-    .token--p1 { background: #4A90D9; }
-    .token--p2 { background: #6BCB77; }
-    .token--p3 { background: #FFD93D; }
+    /* Token */
+    .tk{position:absolute;width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);z-index:10;transition:left .25s,top .25s;display:flex;align-items:center;justify-content:center;font-size:12px;pointer-events:none}
+    .tk0{background:#FF6B6B}.tk1{background:#4A90D9}.tk2{background:#6BCB77}.tk3{background:#FFD93D}
 
     /* Players */
-    .players { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
-    .player-tag { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 2px solid transparent; background: var(--color-light); }
-    .player-tag--active { border-color: var(--color-dark); background: var(--color-white); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .player-tag__dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
-    .player-tag__dot--p0 { background: #FF6B6B; }
-    .player-tag__dot--p1 { background: #4A90D9; }
-    .player-tag__dot--p2 { background: #6BCB77; }
-    .player-tag__dot--p3 { background: #FFD93D; }
+    .players{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+    .ptag{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:600;border:2px solid transparent;background:var(--light)}
+    .ptag.on{border-color:var(--dark);background:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+    .pdot{width:14px;height:14px;border-radius:50%;display:inline-block}
 
     /* 3D Dice */
-    #dice-box { width: 100%; height: 200px; border-radius: 12px; overflow: hidden; margin-top: 12px; }
-    #dice-box canvas { border-radius: 12px; }
+    .dice-stage{width:100%;height:140px;position:relative;overflow:hidden;margin-top:12px;background:linear-gradient(180deg,#ddd5c4,#c9bea8);border-radius:12px;border:2px solid #b8ad97;perspective:800px}
+    .dice-pos{position:absolute;z-index:5;transform-style:preserve-3d}
+    .dice-shadow{position:absolute;width:40px;height:10px;background:rgba(0,0,0,.2);border-radius:50%;filter:blur(3px);z-index:1}
+    .cube{width:60px;height:60px;position:relative;transform-style:preserve-3d}
+    .face{position:absolute;width:60px;height:60px;background:#fff;border:1.5px solid #bbb;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;padding:8px;backface-visibility:visible}
+    .face.f1{transform:translateZ(30px)}
+    .face.f2{transform:rotateY(180deg) translateZ(30px)}
+    .face.f3{transform:rotateY(-90deg) translateZ(30px)}
+    .face.f4{transform:rotateY(90deg) translateZ(30px)}
+    .face.f5{transform:rotateX(90deg) translateZ(30px)}
+    .face.f6{transform:rotateX(-90deg) translateZ(30px)}
+    .pip{width:12px;height:12px;background:#333;border-radius:50%}
+    /* Pip layouts */
+    .face.f1{display:flex;align-items:center;justify-content:center}
+    .face.f1 .pip{width:16px;height:16px}
+    .face.f2{display:grid;grid-template:1fr 1fr/1fr}
+    .face.f2 .pip:nth-child(1){justify-self:end;align-self:start}
+    .face.f2 .pip:nth-child(2){justify-self:start;align-self:end}
+    .face.f3{display:grid;grid-template:1fr 1fr 1fr/1fr}
+    .face.f3 .pip:nth-child(1){justify-self:end;align-self:start}
+    .face.f3 .pip:nth-child(2){justify-self:center;align-self:center}
+    .face.f3 .pip:nth-child(3){justify-self:start;align-self:end}
+    .face.f4{display:grid;grid-template:1fr 1fr/1fr 1fr}
+    .face.f5{display:grid;grid-template:1fr 1fr 1fr/1fr 1fr}
+    .face.f5 .pip:nth-child(3){grid-column:1/3;justify-self:center}
+    .face.f6{display:grid;grid-template:1fr 1fr 1fr/1fr 1fr}
+
+    .dice-num{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:16px;font-weight:800;color:var(--accent);opacity:0;transition:opacity .3s}
+    .dice-num.show{opacity:1}
 
     /* Controls */
-    .controls { text-align: center; margin-top: 12px; }
-    .dice-result-text { font-size: 22px; font-weight: 800; margin-bottom: 10px; min-height: 32px; color: var(--color-accent); }
-    .btn-roll { background: linear-gradient(135deg, var(--color-accent), #ee5a5a); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: var(--font-main); box-shadow: 0 4px 16px rgba(255,107,107,0.4); transition: transform 0.2s; }
-    .btn-roll:hover { transform: translateY(-2px); }
-    .btn-roll:disabled { background: var(--color-gray); cursor: not-allowed; transform: none; box-shadow: none; }
+    .ctrls{text-align:center;margin-top:12px}
+    .roll-btn{background:linear-gradient(135deg,var(--accent),#ee5a5a);color:#fff;border:0;padding:14px 40px;border-radius:50px;font-size:18px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 4px 16px rgba(255,107,107,.4);transition:.2s}
+    .roll-btn:hover{transform:translateY(-2px)}
+    .roll-btn:disabled{background:var(--gray);cursor:not-allowed;transform:none;box-shadow:none}
 
-    .status { text-align: center; margin-top: 12px; padding: 10px; background: var(--color-light); border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .status{text-align:center;margin-top:12px;padding:10px;background:var(--light);border-radius:8px;font-size:14px;font-weight:600}
 
     /* Modal */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
-    .modal-overlay--show { display: flex; }
-    .modal { background: var(--color-white); border-radius: 20px; padding: 32px 24px; max-width: 360px; width: 100%; text-align: center; animation: modalIn 0.3s ease; }
-    @keyframes modalIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
-    .modal__icon { font-size: 56px; margin-bottom: 12px; }
-    .modal__title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
-    .modal__desc { font-size: 15px; color: var(--color-gray); margin-bottom: 20px; line-height: 1.5; }
-    .modal__btn { background: var(--color-primary); color: white; border: none; padding: 12px 32px; border-radius: 50px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: var(--font-main); }
+    .moverlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+    .moverlay.show{display:flex}
+    .mdl{background:#fff;border-radius:20px;padding:32px 24px;max-width:360px;width:100%;text-align:center;animation:mIn .3s}
+    @keyframes mIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+    .mdl-icon{font-size:56px;margin-bottom:12px}
+    .mdl-title{font-size:22px;font-weight:800;margin-bottom:8px}
+    .mdl-desc{font-size:15px;color:var(--gray);margin-bottom:20px;line-height:1.5}
+    .mdl-btn{background:var(--primary);color:#fff;border:0;padding:12px 32px;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font)}
 
-    /* Result */
-    .result { display: none; text-align: center; padding: 20px 0; }
-    .result--show { display: block; }
-    .result__title { font-size: 22px; font-weight: 800; margin-bottom: 16px; }
-    .result__player { text-align: left; margin: 12px 0; padding: 12px; background: var(--color-light); border-radius: 10px; }
-    .result__player-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-    .result__item { font-size: 13px; padding: 4px 0; }
-    .btn-restart { background: var(--color-green); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: var(--font-main); margin-top: 16px; }
+    .result{display:none;text-align:center;padding:20px 0}
+    .result.show{display:block}
+    .result h2{font-size:22px;font-weight:800;margin-bottom:16px}
+    .rplayer{text-align:left;margin:12px 0;padding:12px;background:var(--light);border-radius:10px}
+    .rplayer-name{font-size:16px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .ritem{font-size:13px;padding:4px 0}
+    .restart-btn{background:var(--green);color:#fff;border:0;padding:14px 40px;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:16px}
 
-    .hidden { display: none; }
+    .hidden{display:none}
 
-    @media (max-width: 480px) {
-      .header__title { font-size: 22px; }
-      .game { padding: 10px; margin: 8px 8px 16px; }
-      .cell__icon { font-size: 14px; }
-      .cell__name { font-size: 7px; }
-      .token { width: 20px; height: 20px; font-size: 10px; }
-      .btn-roll { padding: 12px 32px; font-size: 16px; }
-      #dice-box { height: 160px; }
+    @media(max-width:480px){
+      .header h1{font-size:22px}.game{padding:10px;margin:8px 8px 16px}
+      .cell .ico{font-size:14px}.cell .nm{font-size:7px}
+      .tk{width:20px;height:20px;font-size:10px}
+      .roll-btn{padding:12px 32px;font-size:16px}
+      .dice-stage{height:120px}.cube{width:50px;height:50px}
+      .face{width:50px;height:50px;border-radius:6px;padding:6px;gap:4px}
+      .face.f1{transform:translateZ(25px)}.face.f2{transform:rotateY(180deg) translateZ(25px)}
+      .face.f3{transform:rotateY(-90deg) translateZ(25px)}.face.f4{transform:rotateY(90deg) translateZ(25px)}
+      .face.f5{transform:rotateX(90deg) translateZ(25px)}.face.f6{transform:rotateX(-90deg) translateZ(25px)}
+      .pip{width:9px;height:9px}.face.f1 .pip{width:12px;height:12px}
     }
   </style>
 </head>
 <body>
-  <header class="header">
-    <h1 class="header__title">🎲 부루마블 이벤트</h1>
-    <p class="header__sub">주사위를 굴려 경품을 획득하세요!</p>
-  </header>
-
-  <div class="game">
-    <!-- Setup -->
-    <div class="setup" id="setup">
-      <div class="setup__title">참여 인원을 선택하세요</div>
-      <div class="setup__options">
-        <button class="setup__btn" data-count="1">1</button>
-        <button class="setup__btn" data-count="2">2</button>
-        <button class="setup__btn" data-count="3">3</button>
-        <button class="setup__btn" data-count="4">4</button>
-      </div>
-      <button class="setup__start" id="setupStart" disabled>게임 시작</button>
-    </div>
-
-    <!-- Game -->
-    <div id="gameScreen" class="hidden">
-      <div class="players" id="players"></div>
-      <div class="board-wrap" id="boardWrap">
-        <div class="board" id="board"></div>
-      </div>
-
-      <div id="dice-box"></div>
-
-      <div class="controls" id="controls">
-        <div class="dice-result-text" id="diceResultText"></div>
-        <button class="btn-roll" id="btnRoll">🎲 주사위 굴리기</button>
-      </div>
-
-      <div class="status" id="status">주사위를 굴려 게임을 시작하세요!</div>
-
-      <div class="result" id="result">
-        <div class="modal__icon">🎉</div>
-        <div class="result__title">게임 완료!</div>
-        <div id="resultContent"></div>
-        <button class="btn-restart" onclick="window._goToSetup()">🔄 다시 하기</button>
-      </div>
-    </div>
+<header class="header"><h1>🎲 부루마블 이벤트</h1><p>주사위를 굴려 경품을 획득하세요!</p></header>
+<div class="game">
+  <div class="setup" id="setup">
+    <h2>참여 인원을 선택하세요</h2>
+    <div class="setup-opts" id="opts"></div>
+    <button class="start-btn" id="startBtn" disabled>게임 시작</button>
   </div>
-
-  <!-- Modal -->
-  <div class="modal-overlay" id="modal">
-    <div class="modal">
-      <div class="modal__icon" id="modalIcon">🎁</div>
-      <div class="modal__title" id="modalTitle">이벤트!</div>
-      <div class="modal__desc" id="modalDesc">내용</div>
-      <button class="modal__btn" id="modalBtn">확인</button>
+  <div id="gs" class="hidden">
+    <div class="players" id="pl"></div>
+    <div class="board-wrap" id="bw"><div class="board" id="bd"></div></div>
+    <div class="dice-stage" id="stage">
+      <div class="dice-shadow" id="dsh"></div>
+      <div class="dice-pos" id="dpos">
+        <div class="cube" id="cube">
+          <div class="face f1"><span class="pip"></span></div>
+          <div class="face f2"><span class="pip"></span><span class="pip"></span></div>
+          <div class="face f3"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+          <div class="face f4"><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+          <div class="face f5"><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+          <div class="face f6"><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+        </div>
+      </div>
+      <div class="dice-num" id="dnum"></div>
     </div>
+    <div class="ctrls" id="ctrls"><button class="roll-btn" id="rollBtn">🎲 주사위 굴리기</button></div>
+    <div class="status" id="st">주사위를 굴려 게임을 시작하세요!</div>
+    <div class="result" id="res"><span class="mdl-icon">🎉</span><h2>게임 완료!</h2><div id="rc"></div><button class="restart-btn" id="rstBtn">🔄 다시 하기</button></div>
   </div>
+</div>
+<div class="moverlay" id="mo"><div class="mdl"><div class="mdl-icon" id="mi"></div><div class="mdl-title" id="mt"></div><div class="mdl-desc" id="md"></div><button class="mdl-btn" id="mb">확인</button></div></div>
 
-  <script type="module">
-    import DiceBox from "./assets/dice-box/dice-box.es.min.js";
+<script>
+var CELLS=[
+{id:0,name:'출발',type:'start',icon:'🚀'},
+{id:1,name:'10%쿠폰',type:'coupon',icon:'🎁',reward:'10% 할인 쿠폰'},
+{id:2,name:'꽝',type:'blank',icon:'💨'},
+{id:3,name:'미션',type:'mission',icon:'🎯',reward:'SNS 공유 미션'},
+{id:4,name:'보너스',type:'bonus',icon:'🎲'},
+{id:5,name:'무료배송',type:'coupon',icon:'📦',reward:'무료배송 쿠폰'},
+{id:6,name:'꽝',type:'blank',icon:'💨'},
+{id:7,name:'특별경품',type:'special',icon:'⭐',reward:'특별 경품 당첨!'},
+{id:8,name:'미션',type:'mission',icon:'🎯',reward:'사진 찍기 미션'},
+{id:9,name:'꽝',type:'blank',icon:'💨'},
+{id:10,name:'5%쿠폰',type:'coupon',icon:'🎁',reward:'5% 할인 쿠폰'},
+{id:11,name:'보너스',type:'bonus',icon:'🎲'},
+{id:12,name:'미션',type:'mission',icon:'🎯',reward:'리뷰 작성 미션'},
+{id:13,name:'꽝',type:'blank',icon:'💨'},
+{id:14,name:'20%쿠폰',type:'coupon',icon:'🎁',reward:'20% 할인 쿠폰'},
+{id:15,name:'꽝',type:'blank',icon:'💨'},
+{id:16,name:'특별경품',type:'special',icon:'⭐',reward:'특별 경품 당첨!'},
+{id:17,name:'미션',type:'mission',icon:'🎯',reward:'친구 태그 미션'},
+{id:18,name:'보너스',type:'bonus',icon:'🎲'},
+{id:19,name:'꽝',type:'blank',icon:'💨'}
+];
+var GM=[[0,1,2,3,4,5],[19,-1,-1,-1,-1,6],[18,-1,-1,-1,-1,7],[17,-1,-1,-1,-1,8],[16,-1,-1,-1,-1,9],[15,14,13,12,11,10]];
+var PI=['🔴','🔵','🟢','🟡'],PN=['플레이어1','플레이어2','플레이어3','플레이어4'];
+var FROT={1:'rotateY(0)',2:'rotateY(180deg)',3:'rotateY(-90deg)',4:'rotateY(90deg)',5:'rotateX(90deg)',6:'rotateX(-90deg)'};
+var pc=0,ps=[],cp=0,rl=false,af=false;
 
-    var CELLS = [
-      { id:0,  name:'출발',     type:'start',   icon:'🚀' },
-      { id:1,  name:'10% 쿠폰', type:'coupon',  icon:'🎁', reward:'10% 할인 쿠폰' },
-      { id:2,  name:'꽝',       type:'blank',   icon:'💨' },
-      { id:3,  name:'미션',     type:'mission', icon:'🎯', reward:'SNS 공유 미션' },
-      { id:4,  name:'보너스',   type:'bonus',   icon:'🎲' },
-      { id:5,  name:'무료배송', type:'coupon',  icon:'📦', reward:'무료배송 쿠폰' },
-      { id:6,  name:'꽝',       type:'blank',   icon:'💨' },
-      { id:7,  name:'특별경품', type:'special', icon:'⭐', reward:'특별 경품 당첨!' },
-      { id:8,  name:'미션',     type:'mission', icon:'🎯', reward:'사진 찍기 미션' },
-      { id:9,  name:'꽝',       type:'blank',   icon:'💨' },
-      { id:10, name:'5% 쿠폰',  type:'coupon',  icon:'🎁', reward:'5% 할인 쿠폰' },
-      { id:11, name:'보너스',   type:'bonus',   icon:'🎲' },
-      { id:12, name:'미션',     type:'mission', icon:'🎯', reward:'리뷰 작성 미션' },
-      { id:13, name:'꽝',       type:'blank',   icon:'💨' },
-      { id:14, name:'20% 쿠폰', type:'coupon',  icon:'🎁', reward:'20% 할인 쿠폰' },
-      { id:15, name:'꽝',       type:'blank',   icon:'💨' },
-      { id:16, name:'특별경품', type:'special', icon:'⭐', reward:'특별 경품 당첨!' },
-      { id:17, name:'미션',     type:'mission', icon:'🎯', reward:'친구 태그 미션' },
-      { id:18, name:'보너스',   type:'bonus',   icon:'🎲' },
-      { id:19, name:'꽝',       type:'blank',   icon:'💨' }
-    ];
-    var GRID_MAP = [[0,1,2,3,4,5],[19,-1,-1,-1,-1,6],[18,-1,-1,-1,-1,7],[17,-1,-1,-1,-1,8],[16,-1,-1,-1,-1,9],[15,14,13,12,11,10]];
-    var PLAYER_ICONS = ['🔴','🔵','🟢','🟡'];
-    var PLAYER_NAMES = ['플레이어1','플레이어2','플레이어3','플레이어4'];
+/* Setup */
+var opts=document.getElementById('opts');
+[1,2,3,4].forEach(function(n){var b=document.createElement('button');b.className='setup-btn';b.textContent=n;b.onclick=function(){document.querySelectorAll('.setup-btn').forEach(function(x){x.classList.remove('sel')});b.classList.add('sel');pc=n;document.getElementById('startBtn').disabled=false};opts.appendChild(b)});
+document.getElementById('startBtn').onclick=function(){if(pc<1)return;startGame(pc)};
+document.getElementById('rstBtn').onclick=goSetup;
 
-    var playerCount = 0, players = [], currentPlayer = 0, rolling = false, allFinished = false;
-    var diceBox = null;
+function startGame(n){
+  ps=[];for(var i=0;i<n;i++)ps.push({id:i,pos:0,rw:[],fin:false});
+  cp=0;rl=false;af=false;
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('gs').classList.remove('hidden');
+  document.getElementById('ctrls').style.display='';
+  document.getElementById('st').style.display='';
+  document.getElementById('res').classList.remove('show');
+  document.getElementById('dnum').classList.remove('show');
+  document.getElementById('rollBtn').disabled=false;
+  resetDicePos();buildBoard();renderPtags();createToks();posAll(false);updStatus();
+}
+function goSetup(){
+  document.getElementById('setup').classList.remove('hidden');
+  document.getElementById('gs').classList.add('hidden');
+  document.querySelectorAll('.setup-btn').forEach(function(b){b.classList.remove('sel')});
+  document.getElementById('startBtn').disabled=true;pc=0;
+}
 
-    /* === Init Dice === */
-    async function initDice() {
-      try {
-        diceBox = new DiceBox("#dice-box", {
-          assetPath: "./assets/dice-box/assets/",
-          theme: "default",
-          themeColor: "#FF6B6B",
-          scale: 7,
-          gravity: 3,
-          spinForce: 6,
-          throwForce: 6,
-          startingHeight: 12,
-          settleTimeout: 3000,
-          lightIntensity: 1.2,
-          shadowTransparency: 0.5,
-          delay: 10
-        });
-        await diceBox.init();
-        diceBox.onRollComplete = function(results) {
-          handleDiceResult(results);
-        };
-        console.log("dice-box 초기화 성공");
-      } catch(e) {
-        console.error("dice-box 초기화 실패:", e);
-      }
+/* Board */
+function buildBoard(){
+  var bd=document.getElementById('bd');bd.innerHTML='';
+  for(var r=0;r<6;r++)for(var c=0;c<6;c++){var idx=GM[r][c],d=document.createElement('div');
+    if(idx===-1){d.className='cell hide'}
+    else{var cl=CELLS[idx];d.className='cell '+cl.type;d.setAttribute('data-c',idx);d.innerHTML='<span class="ico">'+cl.icon+'</span><span class="nm">'+cl.name+'</span>'}
+    bd.appendChild(d)}
+}
+function gCE(i){return document.querySelector('[data-c="'+i+'"]')}
+function hiCell(i){document.querySelectorAll('.cell.active').forEach(function(c){c.classList.remove('active')});var e=gCE(i);if(e)e.classList.add('active')}
+
+/* Tokens */
+function createToks(){var w=document.getElementById('bw');w.querySelectorAll('.tk').forEach(function(t){t.remove()});ps.forEach(function(p){var t=document.createElement('div');t.className='tk tk'+p.id;t.id='t'+p.id;t.textContent=PI[p.id];w.appendChild(t)})}
+function posTok(pid,ci,an){
+  var t=document.getElementById('t'+pid),ce=gCE(ci),w=document.getElementById('bw');if(!t||!ce||!w)return;
+  var wr=w.getBoundingClientRect(),cr=ce.getBoundingClientRect(),of=[[-6,-6],[6,-6],[-6,6],[6,6]],oi=0;
+  if(ps.length>1){var s=ps.filter(function(p){return p.pos===ci&&!p.fin});for(var i=0;i<s.length;i++)if(s[i].id===pid){oi=i;break}oi%=4}
+  t.style.transition=an?'left .25s,top .25s':'none';
+  t.style.left=(cr.left-wr.left+cr.width/2-12+of[oi][0])+'px';
+  t.style.top=(cr.top-wr.top+cr.height/2-12+of[oi][1])+'px';
+}
+function posAll(a){ps.forEach(function(p){if(!p.fin)posTok(p.id,p.pos,a)})}
+
+/* Player tags */
+function renderPtags(){
+  document.getElementById('pl').innerHTML=ps.map(function(p){
+    var a=p.id===cp&&!p.fin?' on':'',f=p.fin?' (완료)':'',r=p.rw.length>0?' 🎁'+p.rw.length:'';
+    return '<div class="ptag'+a+'"><span class="pdot" style="background:'+['#FF6B6B','#4A90D9','#6BCB77','#FFD93D'][p.id]+'"></span><span>'+PN[p.id]+f+r+'</span></div>'
+  }).join('')
+}
+function updStatus(){var p=ps[cp];document.getElementById('st').textContent=PI[p.id]+' '+PN[p.id]+'의 차례! (위치:'+p.pos+'번칸)';renderPtags();hiCell(p.pos)}
+
+/* Dice physics */
+function resetDicePos(){var dp=document.getElementById('dpos');dp.style.left='calc(50% - 30px)';dp.style.top='40px';document.getElementById('cube').style.transform='rotateX(-20deg) rotateY(20deg)'}
+
+document.getElementById('rollBtn').onclick=rollDice;
+function rollDice(){
+  if(rl||af)return;rl=true;
+  document.getElementById('rollBtn').disabled=true;
+  document.getElementById('dnum').classList.remove('show');
+  var result=Math.floor(Math.random()*6)+1;
+  animDice(result,function(){
+    document.getElementById('dnum').textContent='🎲 '+result+' !';
+    document.getElementById('dnum').classList.add('show');
+    setTimeout(function(){moveCur(result)},500);
+  });
+}
+
+function animDice(res,cb){
+  var dp=document.getElementById('dpos'),cube=document.getElementById('cube'),sh=document.getElementById('dsh');
+  var stage=document.getElementById('stage'),sw=stage.offsetWidth,sh2=stage.offsetHeight;
+  var sz=60,x=30+Math.random()*(sw-120),y=-70;
+  var vx=(Math.random()-.5)*4,vy=0,g=.4,bounce=.45,floor=sh2-sz-10;
+  var rx=0,ry=0,rz=0,vrx=10+Math.random()*15,vry=8+Math.random()*12,vrz=5+Math.random()*10;
+  var rf=.95,bn=0,done=false,fc=0;
+
+  dp.style.transition='none';sh.style.transition='none';
+
+  function frame(){
+    if(done)return;fc++;
+    vy+=g;x+=vx;y+=vy;
+    if(y>=floor){y=floor;vy=-vy*bounce;bn++;vrx*=.6;vry*=.6;vrz*=.6;if(Math.abs(vy)<1.5)vy=0}
+    if(x+sz>sw-10){x=sw-sz-10;vx=-vx*.3}
+    if(x<10){x=10;vx=-vx*.3}
+    vx*=.99;rx+=vrx;ry+=vry;rz+=vrz;vrx*=rf;vry*=rf;vrz*=rf;
+
+    dp.style.left=x+'px';dp.style.top=y+'px';
+    cube.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg) rotateZ('+rz+'deg)';
+
+    var ss=Math.max(.3,1-(floor-y)/120);
+    sh.style.left=(x+sz/2-20)+'px';sh.style.top=(floor+sz+2)+'px';
+    sh.style.transform='scale('+ss+')';sh.style.opacity=ss*.5;
+
+    var tv=Math.abs(vx)+Math.abs(vy)+Math.abs(vrx)+Math.abs(vry)+Math.abs(vrz);
+    if((bn>=2&&tv<2)||fc>200){
+      done=true;
+      cube.style.transition='transform .5s cubic-bezier(.2,.8,.3,1)';
+      var brx=Math.round(rx/360)*360,bry=Math.round(ry/360)*360;
+      var fr=FROT[res];
+      cube.style.transform=fr+' rotateZ(0deg)';
+      setTimeout(cb,600);return;
     }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
 
-    initDice();
+/* Move */
+function moveCur(steps){
+  var p=ps[cp],tp=p.pos+steps;if(tp>=20)tp=20;
+  var arr=[];for(var i=p.pos+1;i<=Math.min(tp,19);i++)arr.push(i);
+  if(!arr.length){finP(cp);return}
+  var s=0,iv=setInterval(function(){
+    if(s>=arr.length){clearInterval(iv);p.pos=arr[arr.length-1];posAll(false);if(tp>=20)finP(cp);else trigEv(cp,p.pos);return}
+    p.pos=arr[s];posTok(p.id,arr[s],true);hiCell(arr[s]);s++;
+  },300);
+}
 
-    /* === Setup === */
-    document.querySelectorAll('.setup__btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.setup__btn').forEach(function(b) { b.classList.remove('setup__btn--selected'); });
-        btn.classList.add('setup__btn--selected');
-        playerCount = parseInt(btn.dataset.count);
-        document.getElementById('setupStart').disabled = false;
-      });
-    });
-    document.getElementById('setupStart').addEventListener('click', function() {
-      if (playerCount < 1) return;
-      startGame(playerCount);
-    });
+/* Events */
+function trigEv(pi,ci){
+  var c=CELLS[ci],p=ps[pi];if(!c){nxTurn();return}
+  var h={start:function(){nxTurn()},
+    coupon:function(){p.rw.push(c.reward);showM('🎁','쿠폰 획득!',PN[pi]+'님이 '+c.reward+'을 획득!',0)},
+    mission:function(){p.rw.push(c.reward);showM('🎯','미션!',PN[pi]+'님! '+c.reward,0)},
+    blank:function(){showM('💨','아쉬워요!',PN[pi]+'님, 다음 기회를 노려보세요!',0)},
+    bonus:function(){showM('🎲','보너스!',PN[pi]+'님, 주사위를 한 번 더!',1)},
+    special:function(){p.rw.push(c.reward);showM('⭐','축하합니다!',PN[pi]+'님! '+c.reward,0)}
+  };(h[c.type]||function(){nxTurn()})();
+}
 
-    function startGame(count) {
-      players = [];
-      for (var i = 0; i < count; i++) players.push({ id:i, name:PLAYER_NAMES[i], position:0, rewards:[], finished:false });
-      currentPlayer = 0; rolling = false; allFinished = false;
-      document.getElementById('setup').classList.add('hidden');
-      document.getElementById('gameScreen').classList.remove('hidden');
-      document.getElementById('controls').style.display = '';
-      document.getElementById('status').style.display = '';
-      document.getElementById('result').classList.remove('result--show');
-      document.getElementById('diceResultText').textContent = '';
-      document.getElementById('btnRoll').disabled = false;
-      buildBoard(); renderPlayerTags(); createTokens(); positionAllTokens(false); updateStatus();
-      if (diceBox) diceBox.clear();
-    }
+var pBonus=false;
+function showM(ic,tt,ds,bn){
+  document.getElementById('mi').textContent=ic;document.getElementById('mt').textContent=tt;
+  document.getElementById('md').textContent=ds;document.getElementById('mo').classList.add('show');
+  pBonus=!!bn;document.getElementById('mb').onclick=function(){document.getElementById('mo').classList.remove('show');if(pBonus)enRoll();else nxTurn()};
+}
 
-    window._goToSetup = function() {
-      document.getElementById('setup').classList.remove('hidden');
-      document.getElementById('gameScreen').classList.add('hidden');
-      document.querySelectorAll('.setup__btn').forEach(function(b) { b.classList.remove('setup__btn--selected'); });
-      document.getElementById('setupStart').disabled = true;
-      playerCount = 0;
-      if (diceBox) diceBox.clear();
-    };
+function nxTurn(){if(chkAll())return;do{cp=(cp+1)%ps.length}while(ps[cp].fin&&!chkAll());if(chkAll())return;enRoll();updStatus();posAll(false)}
+function enRoll(){rl=false;document.getElementById('rollBtn').disabled=false;updStatus();resetDicePos()}
+function finP(pi){ps[pi].fin=true;var t=document.getElementById('t'+pi);if(t)t.style.opacity='.4';renderPtags();if(chkAll())showRes();else showM('🏁','골인!',PN[pi]+'님이 완주!',0)}
+function chkAll(){af=ps.every(function(p){return p.fin});return af}
 
-    /* === Board === */
-    function buildBoard() {
-      var board = document.getElementById('board'); board.innerHTML = '';
-      for (var r = 0; r < 6; r++) for (var c = 0; c < 6; c++) {
-        var idx = GRID_MAP[r][c], div = document.createElement('div');
-        if (idx === -1) { div.className = 'cell cell--hidden'; }
-        else { var cell = CELLS[idx]; div.className = 'cell cell--' + cell.type; div.setAttribute('data-cell', idx); div.innerHTML = '<span class="cell__icon">'+cell.icon+'</span><span class="cell__name">'+cell.name+'</span>'; }
-        board.appendChild(div);
-      }
-    }
-    function getCellEl(idx) { return document.querySelector('[data-cell="'+idx+'"]'); }
-    function highlightCell(idx) { document.querySelectorAll('.cell--active').forEach(function(c){c.classList.remove('cell--active');}); var el=getCellEl(idx); if(el) el.classList.add('cell--active'); }
+function showRes(){
+  document.getElementById('ctrls').style.display='none';document.getElementById('st').style.display='none';
+  document.getElementById('res').classList.add('show');
+  var h='';ps.forEach(function(p){
+    h+='<div class="rplayer"><div class="rplayer-name"><span class="pdot" style="width:16px;height:16px;border-radius:50%;display:inline-block;background:'+['#FF6B6B','#4A90D9','#6BCB77','#FFD93D'][p.id]+'"></span> '+PN[p.id]+' - '+p.rw.length+'개 경품</div>';
+    if(!p.rw.length)h+='<div class="ritem">😅 획득한 경품이 없습니다</div>';
+    else p.rw.forEach(function(r){h+='<div class="ritem">🎁 '+r+'</div>'});h+='</div>'});
+  document.getElementById('rc').innerHTML=h;
+}
 
-    /* === Tokens === */
-    function createTokens() {
-      var wrap = document.getElementById('boardWrap');
-      wrap.querySelectorAll('.token').forEach(function(t){t.remove();});
-      players.forEach(function(p) { var tok=document.createElement('div'); tok.className='token token--p'+p.id; tok.id='token-'+p.id; tok.textContent=PLAYER_ICONS[p.id]; wrap.appendChild(tok); });
-    }
-    function positionToken(pid, cidx, anim) {
-      var tok=document.getElementById('token-'+pid), cellEl=getCellEl(cidx), wrap=document.getElementById('boardWrap');
-      if(!tok||!cellEl||!wrap) return;
-      var wR=wrap.getBoundingClientRect(), cR=cellEl.getBoundingClientRect();
-      var offsets=[[-6,-6],[6,-6],[-6,6],[6,6]];
-      var oi=0; if(players.length>1){var same=players.filter(function(p){return p.position===cidx&&!p.finished;}); for(var i=0;i<same.length;i++) if(same[i].id===pid){oi=i;break;} oi=oi%4;}
-      tok.style.transition=anim?'left 0.25s ease, top 0.25s ease':'none';
-      tok.style.left=(cR.left-wR.left+cR.width/2-12+offsets[oi][0])+'px';
-      tok.style.top=(cR.top-wR.top+cR.height/2-12+offsets[oi][1])+'px';
-    }
-    function positionAllTokens(anim) { players.forEach(function(p){if(!p.finished) positionToken(p.id,p.position,anim);}); }
-
-    /* === UI === */
-    function renderPlayerTags() {
-      document.getElementById('players').innerHTML = players.map(function(p) {
-        var active=p.id===currentPlayer&&!p.finished?' player-tag--active':'';
-        var fin=p.finished?' (완료)':'', rC=p.rewards.length>0?' 🎁'+p.rewards.length:'';
-        return '<div class="player-tag'+active+'"><span class="player-tag__dot player-tag__dot--p'+p.id+'"></span><span>'+p.name+fin+rC+'</span></div>';
-      }).join('');
-    }
-    function updateStatus() {
-      var p=players[currentPlayer];
-      document.getElementById('status').textContent=PLAYER_ICONS[p.id]+' '+p.name+'의 차례입니다! (위치: '+p.position+'번 칸)';
-      renderPlayerTags(); highlightCell(p.position);
-    }
-
-    /* === Roll === */
-    document.getElementById('btnRoll').addEventListener('click', rollDice);
-    function rollDice() {
-      if(rolling||allFinished||!diceBox) return;
-      rolling=true;
-      document.getElementById('btnRoll').disabled=true;
-      document.getElementById('diceResultText').textContent='';
-      diceBox.roll('1d6');
-    }
-    function handleDiceResult(results) {
-      var result=results[0].value;
-      document.getElementById('diceResultText').textContent='🎲 '+result+' !';
-      setTimeout(function(){moveCurrentPlayer(result);},600);
-    }
-
-    /* === Move === */
-    function moveCurrentPlayer(steps) {
-      var p=players[currentPlayer], targetPos=p.position+steps;
-      if(targetPos>=20) targetPos=20;
-      var positions=[];
-      for(var i=p.position+1;i<=Math.min(targetPos,19);i++) positions.push(i);
-      if(positions.length===0){finishPlayer(currentPlayer);return;}
-      var step=0;
-      var moveInterval=setInterval(function(){
-        if(step>=positions.length){clearInterval(moveInterval);p.position=positions[positions.length-1];positionAllTokens(false);if(targetPos>=20)finishPlayer(currentPlayer);else triggerEvent(currentPlayer,p.position);return;}
-        p.position=positions[step];positionToken(p.id,positions[step],true);highlightCell(positions[step]);step++;
-      },300);
-    }
-
-    /* === Events === */
-    function triggerEvent(pi,ci) {
-      var cell=CELLS[ci],p=players[pi];
-      if(!cell){nextTurn();return;}
-      var h={
-        start:function(){nextTurn();},
-        coupon:function(){p.rewards.push(cell.reward);showModal('🎁','쿠폰 획득!',p.name+'님이 '+cell.reward+'을 획득!',false);},
-        mission:function(){p.rewards.push(cell.reward);showModal('🎯','미션!',p.name+'님! '+cell.reward+' 완료 시 추가 경품!',false);},
-        blank:function(){showModal('💨','아쉬워요!',p.name+'님, 다음 기회를 노려보세요!',false);},
-        bonus:function(){showModal('🎲','보너스!',p.name+'님, 주사위를 한 번 더!',true);},
-        special:function(){p.rewards.push(cell.reward);showModal('⭐','축하합니다!',p.name+'님! '+cell.reward,false);}
-      };
-      (h[cell.type]||function(){nextTurn();})();
-    }
-
-    var pendingBonus=false;
-    function showModal(icon,title,desc,isBonus) {
-      document.getElementById('modalIcon').textContent=icon;
-      document.getElementById('modalTitle').textContent=title;
-      document.getElementById('modalDesc').textContent=desc;
-      document.getElementById('modal').classList.add('modal-overlay--show');
-      pendingBonus=isBonus;
-      document.getElementById('modalBtn').onclick=function(){
-        document.getElementById('modal').classList.remove('modal-overlay--show');
-        if(pendingBonus) enableRoll(); else nextTurn();
-      };
-    }
-
-    /* === Turn === */
-    function nextTurn() {
-      if(checkAllFinished()) return;
-      do{currentPlayer=(currentPlayer+1)%players.length;}while(players[currentPlayer].finished&&!checkAllFinished());
-      if(checkAllFinished()) return;
-      enableRoll();updateStatus();positionAllTokens(false);
-    }
-    function enableRoll() { rolling=false;document.getElementById('btnRoll').disabled=false;updateStatus();if(diceBox)diceBox.clear(); }
-    function finishPlayer(pi) {
-      players[pi].finished=true;
-      var tok=document.getElementById('token-'+pi);if(tok)tok.style.opacity='0.4';
-      renderPlayerTags();
-      if(checkAllFinished())showResult();else showModal('🏁','골인!',players[pi].name+'님이 완주했습니다!',false);
-    }
-    function checkAllFinished(){allFinished=players.every(function(p){return p.finished;});return allFinished;}
-
-    /* === Result === */
-    function showResult() {
-      document.getElementById('controls').style.display='none';
-      document.getElementById('status').style.display='none';
-      document.getElementById('result').classList.add('result--show');
-      var html='';
-      players.forEach(function(p){
-        html+='<div class="result__player"><div class="result__player-name"><span class="player-tag__dot player-tag__dot--p'+p.id+'" style="width:16px;height:16px;border-radius:50%;display:inline-block"></span> '+p.name+' - '+p.rewards.length+'개 경품</div>';
-        if(p.rewards.length===0)html+='<div class="result__item">😅 획득한 경품이 없습니다</div>';
-        else p.rewards.forEach(function(r){html+='<div class="result__item">🎁 '+r+'</div>';});
-        html+='</div>';
-      });
-      document.getElementById('resultContent').innerHTML=html;
-    }
-
-    window.addEventListener('resize',function(){positionAllTokens(false);});
-  </script>
+window.addEventListener('resize',function(){posAll(false)});
+</script>
 </body>
 </html>
