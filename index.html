@@ -86,12 +86,9 @@
 </div>
 <div class="moverlay" id="mo"><div class="mdl"><div class="mdl-icon" id="mi"></div><div class="mdl-title" id="mt"></div><div class="mdl-desc" id="md"></div><button class="mdl-btn" id="mb">확인</button></div></div>
 
-<script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","cannon-es":"https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"}}
-</script>
 <script type="module">
-import*as THREE from'three';
-import*as CANNON from'cannon-es';
+import*as THREE from'https://esm.sh/three@0.160.0';
+import*as CANNON from'https://esm.sh/cannon-es@0.20.0';
 
 /* ===== 3D DICE ENGINE ===== */
 var canvas=document.getElementById('diceCanvas');
