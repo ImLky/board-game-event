@@ -84,8 +84,8 @@
     .face.f5 .pip:nth-child(3){grid-column:1/3;justify-self:center}
     .face.f6{display:grid;grid-template:1fr 1fr 1fr/1fr 1fr}
 
-    .dice-num{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:16px;font-weight:800;color:var(--accent);opacity:0;transition:opacity .3s}
-    .dice-num.show{opacity:1}
+    .dice-num{position:absolute;bottom:8px;left:50%;transform:translateX(-50%) scale(0.5);font-size:28px;font-weight:800;color:var(--accent);opacity:0;transition:opacity .4s ease, transform .4s cubic-bezier(.2,1,.3,1);text-shadow:0 2px 8px rgba(255,107,107,.3);pointer-events:none}
+    .dice-num.show{opacity:1;transform:translateX(-50%) scale(1)}
 
     /* Controls */
     .ctrls{text-align:center;margin-top:12px}
@@ -186,7 +186,15 @@ var CELLS=[
 ];
 var GM=[[0,1,2,3,4,5],[19,-1,-1,-1,-1,6],[18,-1,-1,-1,-1,7],[17,-1,-1,-1,-1,8],[16,-1,-1,-1,-1,9],[15,14,13,12,11,10]];
 var PI=['🔴','🔵','🟢','🟡'],PN=['플레이어1','플레이어2','플레이어3','플레이어4'];
-var FROT={1:'rotateY(0)',2:'rotateY(180deg)',3:'rotateY(-90deg)',4:'rotateY(90deg)',5:'rotateX(90deg)',6:'rotateX(-90deg)'};
+/* 결과 면 + 살짝 대각 기울기 (윗면이 사용자에게 보이도록) */
+var FROT={
+  1:'rotateX(-25deg) rotateY(8deg)',
+  2:'rotateX(-25deg) rotateY(188deg)',
+  3:'rotateX(-25deg) rotateY(-82deg)',
+  4:'rotateX(-25deg) rotateY(98deg)',
+  5:'rotateX(65deg) rotateY(8deg)',
+  6:'rotateX(-115deg) rotateY(8deg)'
+};
 var pc=0,ps=[],cp=0,rl=false,af=false;
 
 /* Setup */
@@ -256,9 +264,10 @@ function rollDice(){
   document.getElementById('dnum').classList.remove('show');
   var result=Math.floor(Math.random()*6)+1;
   animDice(result,function(){
-    document.getElementById('dnum').textContent='🎲 '+result+' !';
-    document.getElementById('dnum').classList.add('show');
-    setTimeout(function(){moveCur(result)},500);
+    var dn=document.getElementById('dnum');
+    dn.textContent=result;
+    dn.classList.add('show');
+    setTimeout(function(){moveCur(result)},800);
   });
 }
 
