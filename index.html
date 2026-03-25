@@ -263,42 +263,123 @@ function rollDice(){
 }
 
 function animDice(res,cb){
-  var dp=document.getElementById('dpos'),cube=document.getElementById('cube'),sh=document.getElementById('dsh');
-  var stage=document.getElementById('stage'),sw=stage.offsetWidth,sh2=stage.offsetHeight;
-  var sz=60,x=30+Math.random()*(sw-120),y=-70;
-  var vx=(Math.random()-.5)*4,vy=0,g=.4,bounce=.45,floor=sh2-sz-10;
-  var rx=0,ry=0,rz=0,vrx=10+Math.random()*15,vry=8+Math.random()*12,vrz=5+Math.random()*10;
-  var rf=.95,bn=0,done=false,fc=0;
+  var dp=document.getElementById('dpos'),cube=document.getElementById('cube'),shEl=document.getElementById('dsh');
+  var stage=document.getElementById('stage'),sw=stage.offsetWidth,stgH=stage.offsetHeight;
+  var sz=60,floor=stgH-sz-8;
 
-  dp.style.transition='none';sh.style.transition='none';
+  /* 시작: 화면 밖 위에서 비스듬히 던져짐 */
+  var startSide=Math.random()>.5;
+  var x=startSide?sw*0.15+Math.random()*30:sw*0.65+Math.random()*30;
+  var y=-80-Math.random()*30;
+  var vx=startSide?(1.5+Math.random()*2.5):-(1.5+Math.random()*2.5);
+  var vy=-1+Math.random()*1.5; /* 살짝 위로 던지는 느낌 */
 
-  function frame(){
-    if(done)return;fc++;
-    vy+=g;x+=vx;y+=vy;
-    if(y>=floor){y=floor;vy=-vy*bounce;bn++;vrx*=.6;vry*=.6;vrz*=.6;if(Math.abs(vy)<1.5)vy=0}
-    if(x+sz>sw-10){x=sw-sz-10;vx=-vx*.3}
-    if(x<10){x=10;vx=-vx*.3}
-    vx*=.99;rx+=vrx;ry+=vry;rz+=vrz;vrx*=rf;vry*=rf;vrz*=rf;
+  /* 물리 상수 */
+  var gravity=0.25; /* 느린 중력 = 더 부드러운 낙하 */
+  var bounceDamp=0.42;
+  var wallDamp=0.25;
+  var airFric=0.997;
+  var groundFric=0.96;
 
-    dp.style.left=x+'px';dp.style.top=y+'px';
+  /* 3D 회전 */
+  var rx=Math.random()*60,ry=Math.random()*60,rz=Math.random()*60;
+  var vrx=6+Math.random()*10,vry=5+Math.random()*8,vrz=3+Math.random()*6;
+  var rotDamp=0.975; /* 공중 회전 감쇠 */
+  var rotGroundDamp=0.88; /* 바닥 회전 감쇠 (빠르게 멈춤) */
+
+  var bounceN=0,settled=false,frame=0;
+  var onGround=false;
+
+  dp.style.transition='none';cube.style.transition='none';shEl.style.transition='none';
+
+  function tick(){
+    if(settled)return;
+    frame++;
+
+    /* 중력 */
+    vy+=gravity;
+
+    /* 이동 */
+    x+=vx;
+    y+=vy;
+
+    /* 바닥 충돌 */
+    if(y>=floor){
+      y=floor;
+      onGround=true;
+      if(Math.abs(vy)>1.5){
+        vy=-vy*bounceDamp;
+        bounceN++;
+        /* 바운스마다 회전 감쇠 */
+        vrx*=0.55;vry*=0.55;vrz*=0.55;
+      } else {
+        vy=0;
+        onGround=true;
+      }
+    } else {
+      onGround=false;
+    }
+
+    /* 벽 충돌 */
+    if(x<8){x=8;vx=-vx*wallDamp}
+    if(x+sz>sw-8){x=sw-sz-8;vx=-vx*wallDamp}
+
+    /* 마찰 */
+    if(onGround){
+      vx*=groundFric;
+      vrx*=rotGroundDamp;vry*=rotGroundDamp;vrz*=rotGroundDamp;
+    } else {
+      vx*=airFric;
+      vrx*=rotDamp;vry*=rotDamp;vrz*=rotDamp;
+    }
+
+    /* 회전 적용 */
+    rx+=vrx;ry+=vry;rz+=vrz;
+
+    /* 렌더 */
+    dp.style.left=x+'px';
+    dp.style.top=y+'px';
     cube.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg) rotateZ('+rz+'deg)';
 
-    var ss=Math.max(.3,1-(floor-y)/120);
-    sh.style.left=(x+sz/2-20)+'px';sh.style.top=(floor+sz+2)+'px';
-    sh.style.transform='scale('+ss+')';sh.style.opacity=ss*.5;
+    /* 그림자 (높이에 따라 크기+흐림 변화) */
+    var heightRatio=Math.max(0,(floor-y)/floor);
+    var shScale=1-heightRatio*0.6;
+    var shOp=0.35-heightRatio*0.25;
+    shEl.style.left=(x+sz/2-20)+'px';
+    shEl.style.top=(floor+sz)+'px';
+    shEl.style.transform='scaleX('+shScale+') scaleY('+shScale+')';
+    shEl.style.opacity=Math.max(0.08,shOp);
 
-    var tv=Math.abs(vx)+Math.abs(vy)+Math.abs(vrx)+Math.abs(vry)+Math.abs(vrz);
-    if((bn>=2&&tv<2)||fc>200){
-      done=true;
-      cube.style.transition='transform .5s cubic-bezier(.2,.8,.3,1)';
-      var brx=Math.round(rx/360)*360,bry=Math.round(ry/360)*360;
-      var fr=FROT[res];
-      cube.style.transform=fr+' rotateZ(0deg)';
-      setTimeout(cb,600);return;
+    /* 정지 판단 */
+    var totalEnergy=Math.abs(vx)+Math.abs(vy)+Math.abs(vrx)+Math.abs(vry)+Math.abs(vrz);
+    if(onGround && totalEnergy<1.2 && bounceN>=2 || frame>300){
+      settled=true;
+
+      /* 부드럽게 결과 면으로 전환 (wobble 효과) */
+      var finalRot=FROT[res];
+
+      /* 1단계: 살짝 흔들리며 결과 면 근처로 */
+      cube.style.transition='transform 0.6s cubic-bezier(0.15, 0.85, 0.35, 1.05)';
+      cube.style.transform=finalRot;
+
+      /* 2단계: 미세 흔들림 후 완전 정지 */
+      setTimeout(function(){
+        cube.style.transition='transform 0.3s ease-out';
+        cube.style.transform=finalRot+' rotateZ(2deg)';
+        setTimeout(function(){
+          cube.style.transform=finalRot+' rotateZ(-1deg)';
+          setTimeout(function(){
+            cube.style.transform=finalRot+' rotateZ(0deg)';
+            setTimeout(cb,200);
+          },150);
+        },150);
+      },600);
+
+      return;
     }
-    requestAnimationFrame(frame);
+    requestAnimationFrame(tick);
   }
-  requestAnimationFrame(frame);
+  requestAnimationFrame(tick);
 }
 
 /* Move */
